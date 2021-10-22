@@ -1,19 +1,15 @@
-# This file contains metadata for your plugin.
-
-# This file should be included when you package your plugin.# Mandatory items:
-
 [general]
 name=DHI Res1D loader
 qgisMinimumVersion=3.22
-description=This plugin load DHI res1D file in QGIS as mesh layer
+description=Load DHI res1D as QGIS Mesh Layer
 version=0.1
 author=Vincent Cloarec
-email=vcloarec at gmail dot com
+email=vincent.cloarec@lutraconsulting.co.uk
 
-about=This plugin load DHI res1D file in QGIS as mesh layer
+about=Load DHI res1D as QGIS Mesh Layer
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/DHI/qgis-res1d-plugin/issues
+repository=https://github.com/DHI/qgis-res1d-plugin
 # End of mandatory metadata
 
 # Recommended items:
@@ -23,9 +19,9 @@ hasProcessingProvider=no
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=python
+tags=python, dhi, res1d, mesh
 
-homepage=http://homepage
+homepage=http://www.dhigroup.com
 category=Plugins
 icon=icon.png
 # experimental flag
