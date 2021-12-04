@@ -2,7 +2,7 @@
 name=DHI Res1D loader
 qgisMinimumVersion=3.22
 description=Load DHI res1D as QGIS Mesh Layer
-version=0.1
+version=0.2
 author=Vincent Cloarec
 email=vincent.cloarec@lutraconsulting.co.uk
 
