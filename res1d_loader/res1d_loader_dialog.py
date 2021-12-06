@@ -25,6 +25,7 @@ from datetime import datetime
 
 from mikeio1d.res1d import Res1D
 from mikeio1d.dotnet import to_numpy
+from DHI.Generic.MikeZero.DFS import DfsProjection, DfsFile, DfsFileFactory
 
 Res1DLoaderDialogUi, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'res1d_loader_dialog_base.ui'))
@@ -547,6 +548,9 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
             self.update_time_steps_count()
 
             self.pre_build_mesh()
+
+            dfs_file = DfsFileFactory.DfsGenericOpen(file_name)
+            self.crs_widget.setCrs(QgsCoordinateReferenceSystem.fromWkt(dfs_file.FileInfo.Projection.WKTString))
 
             QApplication.restoreOverrideCursor()
         else:
