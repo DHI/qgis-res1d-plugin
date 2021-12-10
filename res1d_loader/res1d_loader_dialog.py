@@ -204,23 +204,35 @@ class Res1dLoader(QObject):
 
             if self.vertex_on_digi:
                 digi_points = list(reach.DigiPoints)
-                chainage = start_chainage
+                digi_chainage = start_chainage
+                digi_vertices = []
                 for i in range(1, len(digi_points) - 1):
                     point1 = digi_points[i - 1]
                     point2 = digi_points[i]
                     dist = math.sqrt((point1.X - point2.X) ** 2 + (point1.Y - point2.Y) ** 2)
-                    chainage = chainage + dist
-                    if chainage not in internal_chainage_vertices:
-                        dhi_vertex = DHIVertex()
-                        dhi_vertex.X = point2.X
-                        dhi_vertex.Y = point2.Y
-                        dhi_vertex.chainage = chainage
-                        dhi_reach.internal_vertices.append(dhi_vertex)
-                        internal_chainage_vertices.append(chainage)
+                    digi_chainage = digi_chainage + dist
+                    dhi_vertex = DHIVertex()
+                    dhi_vertex.X = point2.X
+                    dhi_vertex.Y = point2.Y
+                    dhi_vertex.chainage = digi_chainage
+                    digi_vertices.append(dhi_vertex)
 
+                # there could be an offset from deduced chainages of digi vs grid/reach,
+                # we need to correct it to avoid bad distribution of vertices along the reach
+                if len(digi_points)>1:
+                    last_digi_chainage = digi_chainage + math.sqrt((digi_points[-1].X - digi_points[-2].X) ** 2 +
+                                                                   (digi_points[-1].Y - digi_points[-2].Y) ** 2)
+                    correction = (last_digi_chainage-start_chainage)/(grid_points[-1].Chainage - start_chainage)
+                    if abs(correction) > 0:
+                        for digi_vert in digi_vertices:
+                            digi_vert.chainage=(digi_vert.chainage-start_chainage)/correction + start_chainage
+
+                dhi_reach.internal_vertices.extend(digi_vertices)
+
+            # sort all the vertices following the chainage
             dhi_reach.internal_vertices = sorted(dhi_reach.internal_vertices, key = lambda vert: vert.chainage)
 
-            # adding grip points and digi points can leads to have too close vertices, here we remove them
+            # adding grip points and digi points can leads to have duplicate / too close vertices, here we remove them
             vert_pos = 0
             while vert_pos < len(dhi_reach.internal_vertices)-1:
                 dist = dhi_reach.internal_vertices[vert_pos].distance(dhi_reach.internal_vertices[vert_pos+1])
