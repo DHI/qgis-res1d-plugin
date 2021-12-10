@@ -326,12 +326,12 @@ class Res1dLoader(QObject):
                 node = self.main_nodes[i]
                 data_items = list(node.DataItems)
                 for data_item in data_items:
-                    if data_item.NumberOfTimeSteps != len(time_steps):
+                    if data_item.NumberOfTimeSteps != len(self.res_1D.data.TimesList):
                         continue
                     if data_item.Quantity.Id != quantity:
                         continue
-                    values_for_time_step = [None]*len(time_index_list)
-                    for t in range(0, len(time_steps)):
+                    values_for_time_step = [None]*len(self.res_1D.data.TimesList)
+                    for t in range(0, len(self.res_1D.data.TimesList)):
                         values = to_numpy(data_item.TimeData.GetValues(t))
                         if len(values) < 1:
                             continue
