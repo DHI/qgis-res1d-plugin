@@ -138,8 +138,8 @@ class Res1dLoader(QObject):
         self.reach_quantities = []
         self.edge_count = 0
 
-        self.vertex_on_grid = False
-        self.vertex_on_digi = False
+        self.vertex_on_grid = True
+        self.vertex_on_digi = True
         self.dataset_on_edge_if_on_vertex = False
 
     def create_mesh(self):
@@ -507,8 +507,7 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
         self.file_widget.fileChanged.connect(self.parseFile)
         self.button_box.accepted.connect(self.launch_loader)
         self.button_box.rejected.connect(self.reject)
-        self.checkBox_on_grid_points.clicked.connect(self.pre_build_mesh)
-        self.checkBox_on_digi_points.clicked.connect(self.pre_build_mesh)
+
         self.time_steps = []
 
         self.start_dateTime_edit.dateTimeChanged.connect(self.update_time_steps_count)
@@ -527,8 +526,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
         self.loader.finished.connect(self.loading_thread.quit)
         self.loader.progressChanged.connect(self.progress_dialog.set_progress)
         self.loader.taskChanged.connect(self.progress_dialog.set_task)
-
-        self.checkBox_on_digi_points.setChecked(True)
 
     def parseFile(self, file_name):
 
@@ -587,9 +584,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
 
     def pre_build_mesh(self):
 
-        self.loader.vertex_on_grid = self.checkBox_on_grid_points.isChecked()
-        self.loader.vertex_on_digi = self.checkBox_on_digi_points.isChecked()
-
         self.loader.file_name = self.file_widget.filePath()
         self.loader.create_mesh()
 
@@ -603,7 +597,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
             return
 
         self.loader.file_name = self.file_widget.filePath()
-        self.loader.dataset_on_edge_if_on_vertex = self.check_box_dataset_on_edge.isChecked()
         self.loader.keep_time_step=self.spin_box_keep_time_step.value()
         self.loader.start_date_time = self.start_dateTime_edit.dateTime()
         self.loader.end_date_time = self.end_dateTime_edit.dateTime()
