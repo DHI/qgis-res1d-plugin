@@ -13,6 +13,7 @@
 import os
 import numpy as np
 import math
+import ntpath
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -461,7 +462,7 @@ class Res1dLoader(QObject):
 
             self.update_progress(i,  len(self.dhi_reaches), 100)
 
-        self.layer = QgsMeshLayer(uri_str, "mesh1D", 'mesh_memory')
+        self.layer = QgsMeshLayer(uri_str, ntpath.basename(self.file_name), 'mesh_memory')
 
         self.load_dataset_group()
         self.finished.emit()
