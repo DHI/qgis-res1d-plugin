@@ -366,7 +366,7 @@ class Res1dLoader(QObject):
                 value_str = [None] * len(self.vertices)
 
                 for n in range(0, len(self.vertices)):
-                    if data[t, n] == 0:
+                    if data[t, n] == delete_value:
                         value_str[n] = '*'
                     else:
                         value_str[n] = str(data[t, n])
