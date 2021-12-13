@@ -13,6 +13,7 @@
 import os
 import numpy as np
 import math
+import ntpath
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -137,8 +138,8 @@ class Res1dLoader(QObject):
         self.reach_quantities = []
         self.edge_count = 0
 
-        self.vertex_on_grid = False
-        self.vertex_on_digi = False
+        self.vertex_on_grid = True
+        self.vertex_on_digi = True
         self.dataset_on_edge_if_on_vertex = False
 
     def create_mesh(self):
@@ -204,23 +205,35 @@ class Res1dLoader(QObject):
 
             if self.vertex_on_digi:
                 digi_points = list(reach.DigiPoints)
-                chainage = start_chainage
+                digi_chainage = start_chainage
+                digi_vertices = []
                 for i in range(1, len(digi_points) - 1):
                     point1 = digi_points[i - 1]
                     point2 = digi_points[i]
                     dist = math.sqrt((point1.X - point2.X) ** 2 + (point1.Y - point2.Y) ** 2)
-                    chainage = chainage + dist
-                    if chainage not in internal_chainage_vertices:
-                        dhi_vertex = DHIVertex()
-                        dhi_vertex.X = point2.X
-                        dhi_vertex.Y = point2.Y
-                        dhi_vertex.chainage = chainage
-                        dhi_reach.internal_vertices.append(dhi_vertex)
-                        internal_chainage_vertices.append(chainage)
+                    digi_chainage = digi_chainage + dist
+                    dhi_vertex = DHIVertex()
+                    dhi_vertex.X = point2.X
+                    dhi_vertex.Y = point2.Y
+                    dhi_vertex.chainage = digi_chainage
+                    digi_vertices.append(dhi_vertex)
 
+                # there could be an offset from deduced chainages of digi vs grid/reach,
+                # we need to correct it to avoid bad distribution of vertices along the reach
+                if len(digi_points)>1:
+                    last_digi_chainage = digi_chainage + math.sqrt((digi_points[-1].X - digi_points[-2].X) ** 2 +
+                                                                   (digi_points[-1].Y - digi_points[-2].Y) ** 2)
+                    correction = (last_digi_chainage-start_chainage)/(grid_points[-1].Chainage - start_chainage)
+                    if abs(correction) > 0:
+                        for digi_vert in digi_vertices:
+                            digi_vert.chainage=(digi_vert.chainage-start_chainage)/correction + start_chainage
+
+                dhi_reach.internal_vertices.extend(digi_vertices)
+
+            # sort all the vertices following the chainage
             dhi_reach.internal_vertices = sorted(dhi_reach.internal_vertices, key = lambda vert: vert.chainage)
 
-            # adding grip points and digi points can leads to have too close vertices, here we remove them
+            # adding grip points and digi points can leads to have duplicate / too close vertices, here we remove them
             vert_pos = 0
             while vert_pos < len(dhi_reach.internal_vertices)-1:
                 dist = dhi_reach.internal_vertices[vert_pos].distance(dhi_reach.internal_vertices[vert_pos+1])
@@ -314,12 +327,12 @@ class Res1dLoader(QObject):
                 node = self.main_nodes[i]
                 data_items = list(node.DataItems)
                 for data_item in data_items:
-                    if data_item.NumberOfTimeSteps != len(time_steps):
+                    if data_item.NumberOfTimeSteps != len(self.res_1D.data.TimesList):
                         continue
                     if data_item.Quantity.Id != quantity:
                         continue
-                    values_for_time_step = [None]*len(time_index_list)
-                    for t in range(0, len(time_steps)):
+                    values_for_time_step = [None]*len(self.res_1D.data.TimesList)
+                    for t in range(0, len(self.res_1D.data.TimesList)):
                         values = to_numpy(data_item.TimeData.GetValues(t))
                         if len(values) < 1:
                             continue
@@ -353,7 +366,7 @@ class Res1dLoader(QObject):
                 value_str = [None] * len(self.vertices)
 
                 for n in range(0, len(self.vertices)):
-                    if data[t, n] == 0:
+                    if data[t, n] == delete_value:
                         value_str[n] = '*'
                     else:
                         value_str[n] = str(data[t, n])
@@ -449,7 +462,7 @@ class Res1dLoader(QObject):
 
             self.update_progress(i,  len(self.dhi_reaches), 100)
 
-        self.layer = QgsMeshLayer(uri_str, "mesh1D", 'mesh_memory')
+        self.layer = QgsMeshLayer(uri_str, ntpath.basename(self.file_name), 'mesh_memory')
 
         self.load_dataset_group()
         self.finished.emit()
@@ -494,8 +507,7 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
         self.file_widget.fileChanged.connect(self.parseFile)
         self.button_box.accepted.connect(self.launch_loader)
         self.button_box.rejected.connect(self.reject)
-        self.checkBox_on_grid_points.clicked.connect(self.pre_build_mesh)
-        self.checkBox_on_digi_points.clicked.connect(self.pre_build_mesh)
+
         self.time_steps = []
 
         self.start_dateTime_edit.dateTimeChanged.connect(self.update_time_steps_count)
@@ -514,8 +526,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
         self.loader.finished.connect(self.loading_thread.quit)
         self.loader.progressChanged.connect(self.progress_dialog.set_progress)
         self.loader.taskChanged.connect(self.progress_dialog.set_task)
-
-        self.checkBox_on_digi_points.setChecked(True)
 
     def parseFile(self, file_name):
 
@@ -574,9 +584,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
 
     def pre_build_mesh(self):
 
-        self.loader.vertex_on_grid = self.checkBox_on_grid_points.isChecked()
-        self.loader.vertex_on_digi = self.checkBox_on_digi_points.isChecked()
-
         self.loader.file_name = self.file_widget.filePath()
         self.loader.create_mesh()
 
@@ -590,7 +597,6 @@ class Res1DDialog(QDialog, Res1DLoaderDialogUi):
             return
 
         self.loader.file_name = self.file_widget.filePath()
-        self.loader.dataset_on_edge_if_on_vertex = self.check_box_dataset_on_edge.isChecked()
         self.loader.keep_time_step=self.spin_box_keep_time_step.value()
         self.loader.start_date_time = self.start_dateTime_edit.dateTime()
         self.loader.end_date_time = self.end_dateTime_edit.dateTime()
