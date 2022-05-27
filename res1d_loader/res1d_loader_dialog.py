@@ -67,7 +67,8 @@ class DHIReach:
 
         if not self.internal_vertices:
             return
-
+        if quantity not in self.quantities_chainage:
+            return
         data_item_index = self.quantities_chainage[quantity][0]
         item_chainages = self.quantities_chainage[quantity][1]
         # search lesser and greater chainage
